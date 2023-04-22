@@ -1,6 +1,5 @@
-<?php 
-    // create a functions to send mail
-    require 'vendor/autoload.php';
+<?php
+require 'vendor/autoload.php';
     use PHPMailer\PHPMailer\PHPMailer;
 
     function getQRCode($name,$email,$mobile){
@@ -18,6 +17,7 @@
         return $response;
 
     }
+
     function encryptData($name,$email,$mobile){
         // code to encrypt data
         $data = $name.",/|".$email.",/|".$mobile;
@@ -25,44 +25,58 @@
         return $data;
     }
 
-    function sendMail($name, $email, $mobile)
-    {
-        // code to send mail
-        $mail = new PHPMailer;
-        $mail->isSMTP();
-        $mail->Host = 'us2.smtp.mailhostbox.com';
-        $mail->SMTPAuth = true;
-        // $mail->SMTPDebug = 2;
-        $mail->Username = 'admin@trystkmv.tech';
-        $mail->Password = 'dr(@*DA0';
-        $mail->SMTPSecure = 'tls';
-        $mail->Port = 587;
-        $mail->setFrom('admin@trystkmv.tech', 'Sagar');
-        $mail->addAddress($email, $name);
-    
-        $mail->isHTML(true);
-        $mail->Subject = 'Test Email';
-        $mail->Body = 'This is a test email';
-        $mail->AltBody = 'This is a test email';
-    
-        $qr = getQRCode($name, $email, $mobile);
-        $mail->addStringAttachment($qr, 'qr.png');
-    
-        if (!$mail->send()) {
-            echo 'Message could not be sent.';
-            echo 'Mailer Error: ' . $mail->ErrorInfo;
-        } else {
-            echo 'Message has been sent';
-        }
-    }
-    
+// Email details
+$to = $email;
+$subject = "Test Email";
+$message = "This is Test Email";
 
-    function decryptData($data){
-        // code to decrypt data
-        $data = base64_decode($data);
-        //separate data
-        $data = explode(",/|",$data);
+// SMTP server details
+$smtpHost = "us2.smtp.mailhostbox.com";
+$smtpUsername = "trystsample@gmail.com";
+$smtpPassword = "TrystSample@1";
 
-        return $data;
+// Email headers
+$headers = array(
+    "From:trystsample@gmail.com",
+    "Reply-To: ${email}",
+    "X-Mailer: PHP/" . phpversion()
+);
+
+// Setup SMTP connection
+$smtp = @fsockopen($smtpHost, 587, $errno, $errstr, 10);
+
+if (!$smtp) {
+    echo "Error: " . $errstr . " (" . $errno . ")";
+} else {
+    $data = fgets($smtp, 1024);
+    fputs($smtp, "EHLO " . $_SERVER['HTTP_HOST'] . "\r\n");
+    $data = fgets($smtp, 1024);
+    fputs($smtp, "STARTTLS\r\n");
+    $data = fgets($smtp, 1024);
+    stream_socket_enable_crypto($smtp, true, STREAM_CRYPTO_METHOD_TLSv1_2_CLIENT);
+    fputs($smtp, "EHLO " . $_SERVER['HTTP_HOST'] . "\r\n");
+    $data = fgets($smtp, 1024);
+    fputs($smtp, "AUTH LOGIN\r\n");
+    $data = fgets($smtp, 1024);
+    fputs($smtp, base64_encode($smtpUsername) . "\r\n");
+    $data = fgets($smtp, 1024);
+    fputs($smtp, base64_encode($smtpPassword) . "\r\n");
+    $data = fgets($smtp, 1024);
+    fputs($smtp, "MAIL FROM: <trystsample@gmail.com>\r\n");
+    $data = fgets($smtp, 1024);
+    fputs($smtp, "RCPT TO: <" . $to . ">\r\n");
+    $data = fgets($smtp, 1024);
+    fputs($smtp, "DATA\r\n");
+    $data = fgets($smtp, 1024);
+    fputs($smtp, "Subject: " . $subject . "\r\n");
+    foreach ($headers as $header) {
+        fputs($smtp, $header . "\r\n");
     }
+    fputs($smtp, "\r\n" . $message . "\r\n.\r\n");
+    $data = fgets($smtp, 1024);
+    fputs($smtp, "QUIT\r\n");
+    fclose($smtp);
+    echo "Email sent successfully.";
+}
+
 ?>
